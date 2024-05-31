@@ -1,0 +1,134 @@
+# Cargar el archivo
+data <- read.csv("fichero 2008 (1).csv", sep=";")
+
+# Recodificación de la variable EDAD
+data <- data[data$EDAD >= 18 & data$EDAD <= 30, ]
+data$EDAD <- ifelse(data$EDAD >= 18 & data$EDAD <= 24, 1, ifelse(data$EDAD >= 25 & data$EDAD <= 30, 2, NA))
+
+# Recodificación de la variable RELIGION
+data <- data[data$RELIGION != 9, ]
+data$RELIGION <- ifelse(data$RELIGION %in% c(3, 4), 0, ifelse(data$RELIGION %in% c(1, 2), 1, NA))
+
+# Recodificación de la variable POLITICA
+data <- data[!data$POLITICA %in% c(98, 99), ]
+data$POLITICA <- ifelse(data$POLITICA %in% c(1, 2, 3), 1,
+                        ifelse(data$POLITICA %in% c(4, 5, 6), 2,
+                               ifelse(data$POLITICA %in% c(7, 8, 9, 10), 3, NA)))
+
+# Recodificación de la variable ESTUDIOS
+data <- data[data$ESTUDIOS != 9, ]
+data$ESTUDIOS <- ifelse(data$ESTUDIOS == 1, 1,
+                        ifelse(data$ESTUDIOS == 2, 2,
+                               ifelse(data$ESTUDIOS == 3, 3,
+                                      ifelse(data$ESTUDIOS == 4, 4,
+                                             ifelse(data$ESTUDIOS %in% c(5, 6), 5, NA)))))
+
+# Recodificación de la variable ESTATUS
+data <- data[data$ESTATUS != 9, ]
+data$ESTATUS <- ifelse(data$ESTATUS %in% c(4, 5), 1,
+                       ifelse(data$ESTATUS %in% c(2, 3), 2,
+                              ifelse(data$ESTATUS == 1, 3, NA)))
+
+# Guardar el archivo recodificado
+write.csv(data, "fichero_2008_recodificadoverdad.csv", row.names = FALSE)
+
+#Aquí hacemos el primer LOGIT
+
+# Cargar las librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Cargar el archivo recodificado
+data <- read.csv("fichero_2008_recodificadoverdad.csv")
+
+# Ajustar el modelo de regresión logística
+modelo_logit <- glm(RELIGION ~ POLITICA, data = data, family = binomial)
+
+# Resumen del modelo
+summary(modelo_logit)
+
+# Crear un gráfico para visualizar la influencia de POLITICA en RELIGION
+# Predecir probabilidades
+data$predicted_prob <- predict(modelo_logit, type = "response")
+
+# Crear un dataframe con las medias por nivel de POLITICA
+plot_data <- data %>%
+  group_by(POLITICA) %>%
+  summarize(mean_prob = mean(predicted_prob))
+
+# Gráfico
+ggplot(plot_data, aes(x = as.factor(POLITICA), y = mean_prob)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Influencia de POLITICA en RELIGION",
+       x = "POLITICA",
+       y = "Probabilidad Media de RELIGION (1)") +
+  theme_minimal()
+
+##SEGUNDO LOGIT. VARIABLE ESTATUS
+# Cargar las librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Cargar el archivo recodificado
+data <- read.csv("fichero_2008_recodificadoverdad.csv")
+
+# Ajustar el modelo de regresión logística
+modelo_logit <- glm(RELIGION ~ ESTATUS, data = data, family = binomial)
+
+# Resumen del modelo
+summary(modelo_logit)
+
+# Crear un gráfico para visualizar la influencia de ESTATUS en RELIGION
+# Predecir probabilidades
+data$predicted_prob <- predict(modelo_logit, type = "response")
+
+# Crear un dataframe con las medias por nivel de ESTATUS
+plot_data <- data %>%
+  group_by(ESTATUS) %>%
+  summarize(mean_prob = mean(predicted_prob))
+
+# Gráfico
+ggplot(plot_data, aes(x = as.factor(ESTATUS), y = mean_prob)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Influencia de ESTATUS en RELIGION",
+       x = "ESTATUS",
+       y = "Probabilidad Media de RELIGION (1)") +
+  theme_minimal()
+
+##REGRESIÓN LINEAL MÚLTIPLE
+# Cargar las librerías necesarias
+library(ggplot2)
+library(dplyr)
+
+# Cargar el archivo recodificado
+data <- read.csv("fichero_2008_recodificadoverdad.csv")
+
+# Ajustar el modelo de regresión logística múltiple
+modelo_logit_multiple <- glm(RELIGION ~ EDAD + SEXO + POLITICA + ESTATUS + ESTUDIOS, data = data, family = binomial)
+
+# Resumen del modelo
+summary(modelo_logit_multiple)
+
+# Crear un gráfico para visualizar la influencia de las variables independientes en RELIGION
+# Coeficientes del modelo
+coeficientes <- summary(modelo_logit_multiple)$coefficients
+
+# Crear un dataframe con los coeficientes
+coef_data <- data.frame(
+  Variable = rownames(coeficientes),
+  Coeficiente = coeficientes[, "Estimate"],
+  ErrorEstandar = coeficientes[, "Std. Error"],
+  ValorP = coeficientes[, "Pr(>|z|)"]
+)
+
+# Gráfico
+ggplot(coef_data[-1, ], aes(x = Variable, y = Coeficiente)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_errorbar(aes(ymin = Coeficiente - ErrorEstandar, ymax = Coeficiente + ErrorEstandar), width = 0.2) +
+  labs(title = "Influencia de Variables Independientes en RELIGION",
+       x = "Variables Independientes",
+       y = "Coeficiente de Regresión") +
+  theme_minimal()
+
+
+
